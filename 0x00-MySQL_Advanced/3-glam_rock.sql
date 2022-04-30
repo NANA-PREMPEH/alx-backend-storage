@@ -1,4 +1,4 @@
--- Task 3: Old school bandlists - all bands with Glam as their main style
+-- lists all bands with Glam as their main style
 -- ranked by their longevity
 SELECT DISTINCT `band_name`,
                 IFNULL(`split`, 2020) - `formed` as `lifespan`
