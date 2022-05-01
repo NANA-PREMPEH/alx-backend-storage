@@ -1,25 +1,35 @@
 #!/usr/bin/env python3
-"""Writing strings to Redis"""
-from redis.client import Redis
+""" Tracker callls """
+
+import redis
 import requests
+from typing import Callable
+from functools import wraps
+
+r = redis.Redis()
 
 
-redis = Redis()
-count = 0
+def count_calls(method: Callable) -> Callable:
+    """ Decorator to know the number of calls """
+
+    @wraps(method)
+    def wrapper(url):
+        """ Wrapper decorator """
+        r.incr(f"count:{url}")
+        cached_html = r.get(f"cached:{url}")
+        if cached_html:
+            return cached_html.decode('utf-8')
+
+        html = method(url)
+        r.setex(f"cached:{url}", 10, html)
+        return html
+
+    return wrapper
 
 
+@count_calls
 def get_page(url: str) -> str:
+    """ Get page
     """
-    obtain the HTML content of
-    a particular URL and returns it
-    """
-    key = f"count:{url}"
-    redis.set(key, count)
-    resp = requests.get(url)
-    redis.incr(key)
-    redis.setex(key, 10, redis.get(key))
-    return resp.text
-
-
-if __name__ == "__main__":
-    get_page('http://slowwly.robertomurray.co.uk')
+    req = requests.get(url)
+    return req.text
