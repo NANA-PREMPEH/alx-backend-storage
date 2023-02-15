@@ -1,45 +1,36 @@
 #!/usr/bin/env python3
-""" MongoDB Operations with Python using pymongo """
+"""
+a Python script that provides some stats about Nginx logs stored in MongoDB
+"""
 from pymongo import MongoClient
 
+
 if __name__ == "__main__":
-    """ Provides some stats about Nginx logs stored in MongoDB """
     client = MongoClient('mongodb://127.0.0.1:27017')
     nginx_collection = client.logs.nginx
-
-    n_logs = nginx_collection.count_documents({})
-    print(f'{n_logs} logs')
-
+    all = list(nginx_collection.find())
+    ips = {}
+    x = len(all)
+    print(x, "logs\nMethods:")
     methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
-    print('Methods:')
-    for method in methods:
-        count = nginx_collection.count_documents({"method": method})
-        print(f'\tmethod {method}: {count}')
-
-    status_check = nginx_collection.count_documents(
-        {"method": "GET", "path": "/status"}
-    )
-
-    print(f'{status_check} status check')
-
-    top_ips = nginx_collection.aggregate([
-        {"$group":
-            {
-                "_id": "$ip",
-                "count": {"$sum": 1}
-            }
-         },
-        {"$sort": {"count": -1}},
-        {"$limit": 10},
-        {"$project": {
-            "_id": 0,
-            "ip": "$_id",
-            "count": 1
-        }}
-    ])
-
+    for m in methods:
+        print(
+            "\tmethod {}: {}".format(
+                m, len(list(nginx_collection.find({"method": m})))
+                )
+            )
+    print(
+        "{} status check".format(
+            len(list(
+                nginx_collection.find({"method": "GET", "path": "/status"})
+                ))
+            )
+        )
+    for log in all:
+        if log.get('ip') and log.get('ip') in ips:
+            ips[log.get('ip')] += 1
+        elif log.get('ip'):
+            ips[log.get('ip')] = 1
     print("IPs:")
-    for top_ip in top_ips:
-        ip = top_ip.get("ip")
-        count = top_ip.get("count")
-        print(f'\t{ip}: {count}')
+    for ip in sorted(ips, key=ips.get, reverse=True)[:10]:
+        print("\t{}: {}".format(ip, ips[ip]))
