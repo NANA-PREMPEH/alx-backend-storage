@@ -27,6 +27,7 @@ def count_calls(method: Callable) -> Callable:
     return wrapper
 
 
+
 @count_calls
 def get_page(url: str) -> str:
     """ Get page
